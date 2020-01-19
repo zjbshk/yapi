@@ -25,7 +25,7 @@ public class Main {
         OkHttpClient client = new OkHttpClient();
 
         // 执行登录操作
-        String url = "http://yapi.infomany.cn:3000/api/user/login";
+        String url = "http://yapi.infomany.cn/api/user/login";
         String json = "{\"email\":\"592466695@qq.com\",\"password\":\"zjb123456\"}";
         final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, json);
@@ -40,7 +40,7 @@ public class Main {
         }
 
         // 执行下载操作
-        url = "http://yapi.infomany.cn:3000/api/plugin/export?type=html&pid=17&status=all&isWiki=true";
+        url = "http://yapi.infomany.cn/api/plugin/export?type=html&pid=17&status=all&isWiki=true";
 
         List<String> setCookieList = response.headers("Set-Cookie");
         StringBuilder cookie = new StringBuilder();
