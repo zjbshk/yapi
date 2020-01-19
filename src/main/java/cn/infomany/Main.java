@@ -7,9 +7,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.util.List;
 
@@ -65,12 +63,7 @@ public class Main {
 
         String outputFilePath = System.getProperty("user.dir") + File.separator + "yapi.html";
         File outFile = new File(outputFilePath);
-//        try (OutputStream outputStream = new FileOutputStream(outFile);
-//             InputStream inputStream = response.body().byteStream()) {
-//            IOUtils.copy(inputStream, outputStream);
-//        } catch (Exception e) {
-//            throw e;
-//        }
+
 
         String scriptHtml = "<link rel=\"stylesheet\" type=\"text/css\" href=\"js/layui/dist/css/layui.css\"/>\n" +
                 "\t\t<script src=\"js/layui/dist/layui.js\" type=\"text/javascript\" charset=\"utf-8\"></script>\n" +
@@ -90,5 +83,21 @@ public class Main {
         IOUtils.write(generateHtml.getBytes(DEFAULT_CHARSET), new FileOutputStream(outFile));
 
         System.out.println("文件更新位置:" + outFile.getAbsolutePath());
+
+        // 导出json文件
+        String outFileJson = System.getProperty("user.dir") + File.separator + "yapi.json";
+        url = "http://yapi.infomany.cn/api/plugin/export?type=json&pid=17&status=all&isWiki=false";
+        request = new Request.Builder()
+                .addHeader("cookie", cookie.toString())
+                .url(url)
+                .build();
+        response = client.newCall(request).execute();
+        try (OutputStream outputStream = new FileOutputStream(outFileJson);
+             InputStream inputStream1 = response.body().byteStream()) {
+            IOUtils.copy(inputStream1, outputStream);
+        } catch (Exception e) {
+            throw e;
+        }
+        System.out.println("文件备份位置：" + outFileJson);
     }
 }
