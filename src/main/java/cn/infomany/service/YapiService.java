@@ -1,6 +1,5 @@
 package cn.infomany.service;
 
-import com.sun.deploy.util.StringUtils;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -35,7 +34,11 @@ public class YapiService {
         }
         response.close();
         List<String> setCookieList = response.headers("Set-Cookie");
-        cookies = StringUtils.join(setCookieList, ";");
+        StringBuilder cookieStringBuilder = new StringBuilder();
+        for (String setCookie : setCookieList) {
+            cookieStringBuilder.append(setCookie).append(";");
+        }
+        cookies = cookieStringBuilder.toString();
     }
 
     public String export(String type, Integer pid, Boolean isWiki) throws IOException {
