@@ -4,13 +4,11 @@ import cn.infomany.model.CommanderArgs;
 import cn.infomany.service.YapiService;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyObject;
 import groovy.lang.MetaMethod;
-import jdk.nashorn.internal.parser.JSONParser;
 import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -18,8 +16,6 @@ import org.jsoup.nodes.Document;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 
 /**
@@ -42,7 +38,18 @@ public class Main {
             jCommander.usage();
             return;
         }
+
+        System.out.println(
+                "╭╮╭╮╭━━╮╭━━╮╭━━╮　┌──╮　　┐┐　┐　　┌──┐　╭─┌╯─╮\n" +
+                "┃╰╯┃┃╭╮┃┃╭╮┃╰╮╭╯┌┬──┬┐┌╯├─┼┘└╯╮　│　│││┌┐│\n" +
+                "╰╮╭╯┃╰╯┃┃╰╯┃　┃┃　　│　　│　│││　│　┌─┴─╯┐││││││\n" +
+                "　┃┃　┃╭╮┃┃╭━╯　┃┃　　│　　│　││╯　│　┌─┬──┐││││││\n" +
+                "　┃┃　┃┃┃┃┃┃　　╭╯╰╮　└─┌╯　　│──┼┘├─┼──┤││││││\n" +
+                "　╰╯　╰╯╰╯╰╯　　╰━━╯└──╯─┘╰┘　　┘　╰─┴──┘　┘─╯┘╯");
+        // 开始运行导出方案
         run();
+
+
     }
 
     private static void run() {
