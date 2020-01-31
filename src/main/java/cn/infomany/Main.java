@@ -1,15 +1,21 @@
 package cn.infomany;
 
-import kotlin.text.Charsets;
-import okhttp3.*;
+import cn.infomany.model.CommanderArgs;
+import cn.infomany.service.YapiService;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.GroovyObject;
+import jdk.nashorn.internal.parser.JSONParser;
 import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import java.io.*;
-import java.net.URL;
-import java.util.List;
+import java.nio.charset.Charset;
 
 
 /**
@@ -19,87 +25,116 @@ import java.util.List;
  */
 public class Main {
 
-    public static void main(String[] args) throws IOException {
-        OkHttpClient client = new OkHttpClient();
+    private static CommanderArgs commanderArgs = new CommanderArgs();
+    private static String scriptText;
 
-        // 执行登录操作
-        String url = "http://yapi.infomany.cn/api/user/login";
-        String json = "{\"email\":\"592466695@qq.com\",\"password\":\"zjb123456\"}";
-        final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder().method("POST", body)
-                .url(url)
-                .build();
-        Response response = client.newCall(request).execute();
+    public static void main(String[] args) {
+        JCommander jCommander = JCommander.newBuilder().addObject(commanderArgs).build();
+        try {
+            jCommander.parse(args);
+        } catch (ParameterException e) {
+            System.out.println(e.getMessage());
+            jCommander.usage();
+            return;
+        }
+        run();
+    }
 
-        if (!response.isSuccessful()) {
-            String msg = String.format("登录失败:code=[%s],body=[%s]", response.code(), response.body());
-            throw new RuntimeException(msg);
+    private static void run() {
+
+        // 执行登录过程
+        YapiService yapiService = new YapiService(commanderArgs.getHost());
+
+        try {
+            yapiService.login(commanderArgs.getEmail(), commanderArgs.getPassword());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("登录失败");
+            return;
         }
 
-        // 执行下载操作
-        url = "http://yapi.infomany.cn/api/plugin/export?type=html&pid=17&status=all&isWiki=true";
-
-        List<String> setCookieList = response.headers("Set-Cookie");
-        StringBuilder cookie = new StringBuilder();
-        for (String setCookie : setCookieList) {
-            cookie.append(setCookie).append(";");
-        }
-        request = new Request.Builder()
-                .addHeader("cookie", cookie.toString())
-                .url(url)
-                .build();
-        response = client.newCall(request).execute();
-
-        if (!response.isSuccessful()) {
-            String msg = String.format("下载失败:code=[%s],body=[%s]", response.code(), response.body());
-            throw new RuntimeException(msg);
+        if (commanderArgs.getScriptFile() != null) {
+            try {
+                scriptText = IOUtils.toString(new FileInputStream(commanderArgs.getScriptFile())
+                        , Charset.defaultCharset());
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("脚本文件文本读取异常");
+                return;
+            }
         }
 
-        String inputStream = response.body().string();
+        // 导出指定类型的文件
+        for (String type : commanderArgs.getTypes()) {
+            String outputFilePath = String.format("%s%s%s.%s", System.getProperty("user.dir"),
+                    File.separator, commanderArgs.getOutputFileName(), type);
+            File outFile = new File(outputFilePath);
+            if (outFile.exists() && !commanderArgs.isOverride()) {
+                System.out.println(String.format("[%s]文件已存在，跳过", outputFilePath));
+                continue;
+            }
 
-//        String rootPath = Main.class.getResource("./").getPath();
-//        System.out.println("rootPath = " + rootPath);
+            try {
+                String exportStr;
+                if ("Swagger".equalsIgnoreCase(type)) {
+                    exportStr = yapiService.exportSwagger(commanderArgs.getPid(), commanderArgs.isWiki());
+                } else {
+                    exportStr = yapiService.export(type, commanderArgs.getPid(), commanderArgs.isWiki());
+                }
 
-        String outputFilePath = System.getProperty("user.dir") + File.separator + "yapi.html";
-        File outFile = new File(outputFilePath);
+                // 判断是否有脚本要处理文件
+                String outPutStr = (scriptText != null ? dealExportScript(type, exportStr) : exportStr);
 
+                // 检查处理后的文本
+                if (outPutStr == null) {
+                    System.out.println(String.format("[%s]处理后的文本为空，跳过", outputFilePath));
+                    continue;
+                }
 
-        String scriptHtml = "<link rel=\"stylesheet\" type=\"text/css\" href=\"js/layui/dist/css/layui.css\"/>\n" +
-                "<script src=\"js/ScrollMagic.min.js\" type=\"text/javascript\"></script>\n" +
-                "<script src=\"js/clipboard.min.js\" type=\"text/javascript\"></script>\n" +
-                "<script src=\"js/layui/dist/layui.js\" type=\"text/javascript\" charset=\"utf-8\"></script>\n" +
-                "<script src=\"js/index.js\" type=\"text/javascript\" charset=\"utf-8\"></script><link rel=\"stylesheet\" href=\"css/default.css\">\n" +
-                "<script src=\"js/highlight.min.js\"></script>" +
-                "<script>hljs.initHighlightingOnLoad();</script>" +
-                "<link rel=\"stylesheet\" href=\"css/index.css\">";
-
-        final String DEFAULT_CHARSET = Charsets.UTF_8.toString();
-        Document doc = Jsoup.parse(inputStream, DEFAULT_CHARSET);
-        Element titleEle = doc.getElementsByTag("title").first();
-        titleEle.after(scriptHtml);
-
-        String generateHtml = doc.toString();
-        System.out.println("更新成功:" + generateHtml);
-
-        IOUtils.write(generateHtml.getBytes(DEFAULT_CHARSET), new FileOutputStream(outFile));
-
-        System.out.println("文件更新位置:" + outFile.getAbsolutePath());
-
-        // 导出json文件
-        String outFileJson = System.getProperty("user.dir") + File.separator + "yapi.json";
-        url = "http://yapi.infomany.cn/api/plugin/export?type=json&pid=17&status=all&isWiki=false";
-        request = new Request.Builder()
-                .addHeader("cookie", cookie.toString())
-                .url(url)
-                .build();
-        response = client.newCall(request).execute();
-        try (OutputStream outputStream = new FileOutputStream(outFileJson);
-             InputStream inputStream1 = response.body().byteStream()) {
-            IOUtils.copy(inputStream1, outputStream);
-        } catch (Exception e) {
-            throw e;
+                try (OutputStream outputStream = new FileOutputStream(outFile)) {
+                    outputStream.write(outPutStr.getBytes(Charset.defaultCharset()));
+                    outputStream.flush();
+                    System.out.println(String.format("[%s]文件下载成功", outputFilePath));
+                } catch (IOException e) {
+                    System.out.println(String.format("[%s]文件写入失败", outputFilePath));
+                    throw e;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-        System.out.println("文件备份位置：" + outFileJson);
+
+    }
+
+    private static String dealExportScript(String type, String exportStr) {
+        String methodName = String.format("deal%s", type.toUpperCase());
+
+        String dealStr;
+        switch (type) {
+            case "json":
+                JsonElement jsonElement = JsonParser.parseString(exportStr);
+                dealStr = invoke(scriptText, methodName, exportStr, jsonElement);
+                break;
+            case "html":
+                Document doc = Jsoup.parse(exportStr);
+                dealStr = invoke(scriptText, methodName, exportStr, doc);
+                break;
+            default:
+                dealStr = invoke(scriptText, methodName, exportStr);
+                break;
+        }
+        return dealStr;
+    }
+
+    private static String invoke(String scriptText, String function, Object... objects) {
+        GroovyClassLoader classLoader = new GroovyClassLoader();
+        Class groovyClass = classLoader.parseClass(scriptText);
+        try {
+            GroovyObject groovyObject = (GroovyObject) groovyClass.newInstance();
+            return (String) groovyObject.invokeMethod(function, objects);
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
