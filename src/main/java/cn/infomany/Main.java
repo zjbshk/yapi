@@ -9,6 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyObject;
+import groovy.lang.MetaMethod;
 import jdk.nashorn.internal.parser.JSONParser;
 import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
@@ -16,6 +17,9 @@ import org.jsoup.nodes.Document;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 
 /**
@@ -27,6 +31,7 @@ public class Main {
 
     private static CommanderArgs commanderArgs = new CommanderArgs();
     private static String scriptText;
+    private static GroovyObject groovyObject;
 
     public static void main(String[] args) {
         JCommander jCommander = JCommander.newBuilder().addObject(commanderArgs).build();
@@ -61,6 +66,15 @@ public class Main {
                 e.printStackTrace();
                 System.out.println("脚本文件文本读取异常");
                 return;
+            }
+
+            GroovyClassLoader classLoader = new GroovyClassLoader();
+            Class groovyClass = classLoader.parseClass(scriptText);
+            try {
+                groovyObject = (GroovyObject) groovyClass.newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+                System.out.println("生成java类发生异常");
             }
         }
 
@@ -113,28 +127,27 @@ public class Main {
         switch (type) {
             case "json":
                 JsonElement jsonElement = JsonParser.parseString(exportStr);
-                dealStr = invoke(scriptText, methodName, exportStr, jsonElement);
+                dealStr = invoke(methodName, exportStr, jsonElement);
                 break;
             case "html":
                 Document doc = Jsoup.parse(exportStr);
-                dealStr = invoke(scriptText, methodName, exportStr, doc);
+                dealStr = invoke(methodName, exportStr, doc);
                 break;
             default:
-                dealStr = invoke(scriptText, methodName, exportStr);
+                dealStr = invoke(methodName, exportStr);
                 break;
         }
         return dealStr;
     }
 
-    private static String invoke(String scriptText, String function, Object... objects) {
-        GroovyClassLoader classLoader = new GroovyClassLoader();
-        Class groovyClass = classLoader.parseClass(scriptText);
-        try {
-            GroovyObject groovyObject = (GroovyObject) groovyClass.newInstance();
-            return (String) groovyObject.invokeMethod(function, objects);
-        } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
-            return null;
-        }
+    private static String invoke(String function, Object... objects) {
+        Optional<MetaMethod> method =
+                groovyObject.getMetaClass().getMethods().stream()
+                        .filter(metaMethod -> metaMethod.getName().equals(function))
+                        .findFirst();
+
+        return (String) (method.isPresent() ?
+                groovyObject.invokeMethod(function, objects) :
+                objects[0]);
     }
 }
