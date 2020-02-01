@@ -1,5 +1,7 @@
+import com.google.gson.JsonElement
 import org.jsoup.nodes.Document
 
+// 将后台的html进行编辑
 def dealHTML(exportStr, Document doc) {
 
 
@@ -41,4 +43,8 @@ def dealHTML(exportStr, Document doc) {
             .append('<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=20000996" target="_blank">赣ICP备20000996</a>')
 
     return doc.toString()
+}
+
+def dealJSON(exportStr, JsonElement jsonElement) {
+
 }

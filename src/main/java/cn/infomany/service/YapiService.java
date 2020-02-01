@@ -20,8 +20,7 @@ public class YapiService {
     public void login(String email, String password) throws IOException {
         String loginInfoJsonStr = String.format("{\"email\":\"%s\",\"password\":\"%s\"}", email, password);
         final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        RequestBody body = RequestBody.create(JSON, loginInfoJsonStr);
-
+        RequestBody body = RequestBody.create(loginInfoJsonStr, JSON);
         String LOGIN_PATH = "/api/user/login";
         Request request = new Request.Builder().method("POST", body)
                 .url(String.format("%s%s", host, LOGIN_PATH))

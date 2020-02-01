@@ -15,6 +15,7 @@ import org.jsoup.nodes.Document;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Optional;
 
 
@@ -30,6 +31,17 @@ public class Main {
     private static GroovyObject groovyObject;
 
     public static void main(String[] args) {
+
+        // 显示版本信息
+        Optional<String> versionOpt = Arrays.asList(args).stream()
+                .filter(arg -> "-v".equals(arg) || "-version".equals(arg))
+                .findFirst();
+
+        if (versionOpt.isPresent()) {
+            System.out.println("当前版本为：" + commanderArgs.getVersion());
+            return;
+        }
+
         JCommander jCommander = JCommander.newBuilder().addObject(commanderArgs).build();
         try {
             jCommander.parse(args);
@@ -41,11 +53,11 @@ public class Main {
 
         System.out.println(
                 "╭╮╭╮╭━━╮╭━━╮╭━━╮　┌──╮　　┐┐　┐　　┌──┐　╭─┌╯─╮\n" +
-                "┃╰╯┃┃╭╮┃┃╭╮┃╰╮╭╯┌┬──┬┐┌╯├─┼┘└╯╮　│　│││┌┐│\n" +
-                "╰╮╭╯┃╰╯┃┃╰╯┃　┃┃　　│　　│　│││　│　┌─┴─╯┐││││││\n" +
-                "　┃┃　┃╭╮┃┃╭━╯　┃┃　　│　　│　││╯　│　┌─┬──┐││││││\n" +
-                "　┃┃　┃┃┃┃┃┃　　╭╯╰╮　└─┌╯　　│──┼┘├─┼──┤││││││\n" +
-                "　╰╯　╰╯╰╯╰╯　　╰━━╯└──╯─┘╰┘　　┘　╰─┴──┘　┘─╯┘╯");
+                        "┃╰╯┃┃╭╮┃┃╭╮┃╰╮╭╯┌┬──┬┐┌╯├─┼┘└╯╮　│　│││┌┐│\n" +
+                        "╰╮╭╯┃╰╯┃┃╰╯┃　┃┃　　│　　│　│││　│　┌─┴─╯┐││││││\n" +
+                        "　┃┃　┃╭╮┃┃╭━╯　┃┃　　│　　│　││╯　│　┌─┬──┐││││││\n" +
+                        "　┃┃　┃┃┃┃┃┃　　╭╯╰╮　└─┌╯　　│──┼┘├─┼──┤││││││\n" +
+                        "　╰╯　╰╯╰╯╰╯　　╰━━╯└──╯─┘╰┘　　┘　╰─┴──┘　┘─╯┘╯");
         // 开始运行导出方案
         run();
 
@@ -97,7 +109,7 @@ public class Main {
 
             try {
                 String exportStr;
-                if ("Swagger".equalsIgnoreCase(type)) {
+                if ("swagger".equalsIgnoreCase(type)) {
                     exportStr = yapiService.exportSwagger(commanderArgs.getPid(), commanderArgs.isWiki());
                 } else {
                     exportStr = yapiService.export(type, commanderArgs.getPid(), commanderArgs.isWiki());
@@ -124,7 +136,6 @@ public class Main {
                 e.printStackTrace();
             }
         }
-
     }
 
     private static String dealExportScript(String type, String exportStr) {
@@ -132,6 +143,7 @@ public class Main {
 
         String dealStr;
         switch (type) {
+            case "swagger":
             case "json":
                 JsonElement jsonElement = JsonParser.parseString(exportStr);
                 dealStr = invoke(methodName, exportStr, jsonElement);

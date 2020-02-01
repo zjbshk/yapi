@@ -40,6 +40,9 @@ public class CommanderArgs {
     @Parameter(names = {"-s", "--script-file"}, description = "处理导出文本的脚本文件路径", converter = ParamScriptFileConvert.class, arity = 1, order = 10)
     private File scriptFile;
 
+    @Parameter(names = {"-v", "--version"}, description = "打印版本信息", arity = 0, order = 11)
+    private String version = "1.0";
+
 
     public String getHost() {
         return host;
@@ -118,6 +121,16 @@ public class CommanderArgs {
     }
 
     public void setOverride(boolean override) {
+
         this.override = override;
     }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
 }
+
