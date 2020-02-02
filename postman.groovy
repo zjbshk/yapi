@@ -1,9 +1,15 @@
+import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 
 def dealJSON(exportStr, JsonElement jsonElement) {
     def postMan = new PostMan()
-    postMan.info.name = "未命名"
+
+    def info = new CollectionInfo()
+    postMan.info = info
+    info.name = "未命名"
+
+    postMan.item = new ArrayList<>()
 
     def jsonArray = jsonElement.getAsJsonArray()
 
@@ -12,7 +18,10 @@ def dealJSON(exportStr, JsonElement jsonElement) {
         def itemList = classification.get("list").getAsJsonArray()
         for (itemRequest in itemList) {
             assert itemRequest instanceof JsonObject
+
             def item = new Item()
+            postMan.item.add(item)
+
             item.name = itemRequest.get("title").getAsString()
 
             Request request = new Request()
@@ -23,7 +32,10 @@ def dealJSON(exportStr, JsonElement jsonElement) {
             URLContent url = new URLContent()
             request.url = url
 
-            url.raw = itemRequest.get("path").getAsString()
+            def path = itemRequest.get("path").getAsString()
+            url.raw = path
+            url.host = Arrays.asList("{{host}}")
+            url.path = Arrays.asList(path)
 
             request.header = new ArrayList<>()
 
@@ -31,16 +43,16 @@ def dealJSON(exportStr, JsonElement jsonElement) {
             for (headParamYapi in headParamList) {
                 assert headParamYapi instanceof JsonObject
                 HeadParam headParam = new HeadParam()
-                headParam.name = headParamYapi.get("name").getAsString()
+                headParam.key = headParamYapi.get("name").getAsString()
                 headParam.value = headParamYapi.get("value")
                 request.header.add(headParam)
             }
-
-
-
         }
+
     }
 
+    def gson = new Gson()
+    println gson.toJson(postMan)
 }
 
 class PostMan {
@@ -51,7 +63,7 @@ class PostMan {
 class CollectionInfo {
     String _postman_id
     String name
-    String schema
+    String schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 }
 
 class Item {
@@ -86,7 +98,7 @@ class Param {
 
 class HeadParam {
     String key
-    String name
+//    String name
     String value
-    String type
+//    String type
 }
