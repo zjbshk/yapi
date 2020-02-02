@@ -57,6 +57,12 @@ public class YapiService {
         return basicExport(urlPath);
     }
 
+    public String getProjectInfo(Integer pid) throws IOException {
+        String PROJECT_GET_PATH = "/api/project/get";
+        String urlPath = String.format("%s%s?id=%d", host,PROJECT_GET_PATH, pid);
+        return basicExport(urlPath);
+    }
+
     private String basicExport(String urlPath) throws IOException {
         if (cookies == null || cookies.isEmpty()) {
             throw new RuntimeException("请先登录执行此操作");

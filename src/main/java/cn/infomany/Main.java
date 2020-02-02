@@ -1,10 +1,13 @@
 package cn.infomany;
 
 import cn.infomany.model.CommanderArgs;
+import cn.infomany.model.YapiProjectInfo;
 import cn.infomany.service.YapiService;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyObject;
@@ -74,6 +77,22 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("登录失败");
+            return;
+        }
+
+        YapiProjectInfo yapiProjectInfo;
+        try {
+            String projectInfo = yapiService.getProjectInfo(commanderArgs.getPid());
+            JsonElement jsonElement = JsonParser.parseString(projectInfo);
+            JsonObject data = jsonElement.getAsJsonObject().get("data").getAsJsonObject();
+            Gson gson = new Gson();
+            yapiProjectInfo = gson.fromJson(data, YapiProjectInfo.class);
+
+            String msg = String.format("正在导出...《%s》中的%s", yapiProjectInfo.getName(), commanderArgs.getTypes());
+            System.out.println(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("获取项目信息失败");
             return;
         }
 
